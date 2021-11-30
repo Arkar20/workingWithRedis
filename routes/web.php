@@ -55,6 +55,31 @@ Route::get('/articles/{article}',function(Article $article){
     return $article;
 });
 
+Route::get('/profile/{id}',function($id){
+    $profiles=[
+       'id'=>$id,
+        'followers'=>1000,
+        'friends'=> 20,
+        'likes'=>200
+    ];
+
+  Redis::hmset("users.{$id}.stats",$profiles);
+
+    $userprofiles=Redis::hgetall("users.{$id}.stats");
+    return  $userprofiles;
+
+})->name('profile.show');
+
+Route::get('/addfavourites/{id}',function($id){
+
+    Redis::hincrby("users.{$id}.stats",'favourites',1);
+
+    $userprofiles=Redis::hgetall("users.{$id}.stats");
+
+    return redirect()->route('profile.show',$id);
+
+});
+
 
 
 //! flushall to remove all 
