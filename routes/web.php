@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Article;
 use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Route;
 
@@ -14,36 +15,44 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('/', function () {
-   $visits=Redis::incrBy('visits',5);
+// Route::get('/', function () {
+//    $visits=Redis::incrBy('visits',5);
 
-   return view('welcome',compact('visits'));
+//    return view('welcome',compact('visits'));
+// });
+
+
+// Route::get('/article/{id}',function($id){
+
+//     $totalvisitors=Redis::incr("articles.{$id}.visists");  //* also : works fine
+
+//     return view('article',compact('totalvisitors'));
+// });
+
+
+
+
+Route::get('/articles',function(){
+    
+ 
+
+    $articles=  Redis::zrevrange('trending_videos',0,2);
+
+    $aritcles_view=Article::hydrate(
+        array_map('json_decode',$articles)
+    );
+
+    return $aritcles_view;
+   
 });
 
+Route::get('/articles/{article}',function(Article $article){
+     
+      Redis::zincrby('trending_videos',1, $article);
 
-Route::get('/article/{id}',function($id){
+    //! Redis::zremrangebyrank('trending_videos',0,-2); limiting the set 
 
-    $totalvisitors=Redis::incr("articles.{$id}.visists");  //* also : works fine
-
-    return view('article',compact('totalvisitors'));
-});
-
-
-
-
-Route::get('/videos',function(){
-
-    $videos=  Redis::zrevrange('trending_videos',0,2);
-
-    return $videos;
-});
-Route::get('/videos/{id}',function($id){
-
-      Redis::zincrby('trending_videos',1,$id);
-
-    //!   Redis::zremrangebyrank('trending_videos',0,-2); limiting the set 
-
-    return back();
+    return $article;
 });
 
 
