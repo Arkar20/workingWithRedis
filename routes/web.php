@@ -32,102 +32,122 @@ use Illuminate\Support\Facades\Route;
 //     return view('article',compact('totalvisitors'));
 // });
 
-interface Articles{
-    public function all();
-}
-class CachableArticle implements Articles{
-    protected $articles;
+// interface Articles{
+//     public function all();
+// }
+// class CachableArticle implements Articles{
+//     protected $articles;
 
-     public function __construct($articles)
-    {
-       $this->articles = $articles;
-    }
+//      public function __construct($articles)
+//     {
+//        $this->articles = $articles;
+//     }
 
-  public function all(){
-         return Cache::remember('articles.all',60,function(){  //* now using the redis as the cache driver
-                  return $this->articles->all();
-             });
-  }
+//   public function all(){
+//          return Cache::remember('articles.all',60,function(){  //* now using the redis as the cache driver
+//                   return $this->articles->all();
+//              });
+//   }
 
-}
-class EleqoentArticles implements Articles{
+// }
+// class EleqoentArticles implements Articles{
 
-    public function all(){
-        return Article::all();
-    }
-}
+//     public function all(){
+//         return Article::all();
+//     }
+// }
 
-App::bind('Articles',function(){
- return new CachableArticle(new EleqoentArticles); 
-});
-
-Route::get('/articles',function(){
-// dd(env('CACHE_PREFIX', Str::slug(env('APP_NAME', 'laravel'), '_').'_cache'));
-    //   return Cache::remember('articles.all',60,function(){  //* now using the redis as the cache driver
-    //               return Article::all();
-    //          });
-
-    Cache::rememberForever('articles',function(){  //* now using the redis as the cache driver
-                  return Article::all();
-             });
-
-    return Cache::get('articles');
-});
-
-// Route::get('/articles',function(Articles $articles){
-//     return $articles->all();
+// App::bind('Articles',function(){
+//  return new CachableArticle(new EleqoentArticles); 
 // });
 
+// Route::get('/articles',function(){
+// // dd(env('CACHE_PREFIX', Str::slug(env('APP_NAME', 'laravel'), '_').'_cache'));
+//     //   return Cache::remember('articles.all',60,function(){  //* now using the redis as the cache driver
+//     //               return Article::all();
+//     //          });
+
+//     Cache::rememberForever('articles',function(){  //* now using the redis as the cache driver
+//                   return Article::all();
+//              });
+
+//     return Cache::get('articles');
+// });
+
+// // Route::get('/articles',function(Articles $articles){
+// //     return $articles->all();
+// // });
 
 
 
 
-Route::get('/recentarticles',function(){
+
+// Route::get('/recentarticles',function(){
     
  
 
-    $articles=  Redis::zrevrange('trending_videos',0,2);
+//     $articles=  Redis::zrevrange('trending_videos',0,2);
 
-    $aritcles_view=Article::hydrate(
-        array_map('json_decode',$articles)
-    );
+//     $aritcles_view=Article::hydrate(
+//         array_map('json_decode',$articles)
+//     );
 
-    return $aritcles_view;
+//     return $aritcles_view;
    
-});
+// });
 
-Route::get('/articles/{article}',function(Article $article){
+// Route::get('/articles/{article}',function(Article $article){
      
-      Redis::zincrby('trending_videos',1, $article);
+//       Redis::zincrby('trending_videos',1, $article);
 
-    //! Redis::zremrangebyrank('trending_videos',0,-2); limiting the set 
+//     //! Redis::zremrangebyrank('trending_videos',0,-2); limiting the set 
 
-    return $article;
+//     return $article;
+// });
+
+// Route::get('/profile/{id}',function($id){
+//     $profiles=[
+//        'id'=>$id,
+//         'followers'=>1000,
+//         'friends'=> 20,
+//         'likes'=>200
+//     ];
+
+//   Redis::hmset("users.{$id}.stats",$profiles);
+
+//     $userprofiles=Redis::hgetall("users.{$id}.stats");
+//     return  $userprofiles;
+
+// })->name('profile.show');
+
+// Route::get('/addfavourites/{id}',function($id){ //!! using hash for storing multiple data like array
+
+//     Redis::hincrby("users.{$id}.stats",'favourites',1);
+
+//     $userprofiles=Redis::hgetall("users.{$id}.stats");
+
+//     return redirect()->route('profile.show',$id);
+
+// });
+
+
+Route::get('/articles',function(){
+
+    $articles=Article::all();
+
+    $cachedata=Redis::zrevrange('user.1.article',0,2);
+
+    $recentarticles=Article::hydrate(
+       array_map('json_decode',$cachedata)
+    );
+    return view('article',compact('articles','recentarticles'));
 });
+Route::get('/articles/{article}',function(Article $article){
 
-Route::get('/profile/{id}',function($id){
-    $profiles=[
-       'id'=>$id,
-        'followers'=>1000,
-        'friends'=> 20,
-        'likes'=>200
-    ];
+    Redis::zadd('user.1.article',time(),$article);
 
-  Redis::hmset("users.{$id}.stats",$profiles);
 
-    $userprofiles=Redis::hgetall("users.{$id}.stats");
-    return  $userprofiles;
-
-})->name('profile.show');
-
-Route::get('/addfavourites/{id}',function($id){ //!! using hash for storing multiple data like array
-
-    Redis::hincrby("users.{$id}.stats",'favourites',1);
-
-    $userprofiles=Redis::hgetall("users.{$id}.stats");
-
-    return redirect()->route('profile.show',$id);
-
+    return redirect('/articles');
 });
 
 

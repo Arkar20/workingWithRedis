@@ -7,6 +7,25 @@
     <title>Article</title>
 </head>
 <body>
-    Aricle Visists time {{$totalvisitors}}
+  <h1>Articles </h1>
+
+    <ul>
+        @foreach ( $articles as $article)
+            <li>
+            <a href="/articles/{{$article->id}}">
+                {{$article->title}}
+            </a>    
+            </li>
+        @endforeach
+    </ul>
+
+
+    <h2>Recent Articles</h2>
+
+      <ul>
+        @foreach ( $recentarticles as $article)
+            <li>{{$article->title}}</li>
+        @endforeach
+    </ul>
 </body>
 </html>
