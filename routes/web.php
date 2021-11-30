@@ -19,3 +19,11 @@ Route::get('/', function () {
 
    return view('welcome',compact('visits'));
 });
+
+
+Route::get('/article/{id}',function($id){
+
+    $totalvisitors=Redis::incr("articles.{$id}.visists");
+
+    return view('article',compact('totalvisitors'));
+});
