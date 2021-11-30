@@ -119,6 +119,7 @@ return [
 
     'redis' => [
 
+        
        'client' => env('REDIS_CLIENT', 'predis'),
 
     'default' => [

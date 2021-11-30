@@ -1,6 +1,9 @@
 <?php
 
 use App\Models\Article;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Route;
 
@@ -29,10 +32,57 @@ use Illuminate\Support\Facades\Route;
 //     return view('article',compact('totalvisitors'));
 // });
 
+interface Articles{
+    public function all();
+}
+class CachableArticle implements Articles{
+    protected $articles;
 
+     public function __construct($articles)
+    {
+       $this->articles = $articles;
+    }
 
+  public function all(){
+         return Cache::remember('articles.all',60,function(){  //* now using the redis as the cache driver
+                  return $this->articles->all();
+             });
+  }
+
+}
+class EleqoentArticles implements Articles{
+
+    public function all(){
+        return Article::all();
+    }
+}
+
+App::bind('Articles',function(){
+ return new CachableArticle(new EleqoentArticles); 
+});
 
 Route::get('/articles',function(){
+// dd(env('CACHE_PREFIX', Str::slug(env('APP_NAME', 'laravel'), '_').'_cache'));
+    //   return Cache::remember('articles.all',60,function(){  //* now using the redis as the cache driver
+    //               return Article::all();
+    //          });
+
+    Cache::rememberForever('articles',function(){  //* now using the redis as the cache driver
+                  return Article::all();
+             });
+
+    return Cache::get('articles');
+});
+
+// Route::get('/articles',function(Articles $articles){
+//     return $articles->all();
+// });
+
+
+
+
+
+Route::get('/recentarticles',function(){
     
  
 
@@ -70,7 +120,7 @@ Route::get('/profile/{id}',function($id){
 
 })->name('profile.show');
 
-Route::get('/addfavourites/{id}',function($id){
+Route::get('/addfavourites/{id}',function($id){ //!! using hash for storing multiple data like array
 
     Redis::hincrby("users.{$id}.stats",'favourites',1);
 
@@ -84,7 +134,7 @@ Route::get('/addfavourites/{id}',function($id){
 
 //! flushall to remove all 
 
-//*List = Array
+//*List = Array 
 //*Hash = Object
 //*Sets= Unique Array or List 
 //*Sorted Sets= Sorted according to score, which we defined date, number, etc
